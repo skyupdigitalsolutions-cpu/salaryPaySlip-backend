@@ -1,4 +1,3 @@
-// scripts/createAdmin.js
 import * as dotenv from "dotenv";
 import { fileURLToPath } from "url";
 import { dirname, resolve } from "path";
@@ -27,21 +26,22 @@ const createAdmin = async () => {
     console.log("6️⃣  No existing admin found, creating...");
 
     const admin = new Admin({
-      name: "Pooja Srinivas",
+      name: "SKYUP",
       email: "skyupdigitalsolutions@gmail.com",
-      password: "Contact@2026",
+      password: "SKYUP@2026",
       isActive: true,
     });
     console.log("7️⃣  Admin object created, saving...");
 
     await admin.save();
     console.log("✅ Admin created successfully!");
-    console.log("📧 Email:    skyupdigitalsolutions@gmail.com");
-    console.log("🔑 Password: Contact@2026");
+    console.log("📧 Login Email : skyupdigitalsolutions@gmail.com");
+    console.log("🔑 Password    : SKYUP@2026");
+    console.log("🔐 Owner Email : " + (process.env.OWNER_EMAIL || "NOT SET in .env"));
 
   } catch (err) {
     console.error("❌ Error:", err.message);
-    console.error("📍 Stack:", err.stack);  // ← this will show exact line
+    console.error("📍 Stack:", err.stack);
   } finally {
     await mongoose.disconnect();
     console.log("🔌 Disconnected.");
