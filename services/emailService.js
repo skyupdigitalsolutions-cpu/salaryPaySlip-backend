@@ -94,7 +94,7 @@ function buildEmailBody(data) {
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="UTF-8"/></head>
-<body style="margin:0;padding:40px 20px;background:#ffffff;font-family:Arial,sans-serif;color:#222;font-size:14px;line-height:1.8;">
+<body style="margin:0;padding:0 20px 20px 20px;background:#ffffff;font-family:Arial,sans-serif;color:#222;font-size:14px;line-height:1.8;">
 
   <p>Dear ${employeeName},</p>
 
@@ -116,7 +116,7 @@ function buildEmailBody(data) {
   </p>
 
   <p>This is a system-generated email. Please do not reply to this email directly.<br/>
-  For any queries, contact HR at <a href="mailto:contact@skyupdigital.com" style="color:#0037CA;">contact@skyupdigital.com</a> or call +91 9538752960.</p>
+  For any queries, contact HR at <a href="mailto:contact@skyupdigitalsolutions.com" style="color:#0037CA;">contact@skyupdigitalsolutions.com</a> or call +91 8867867775.</p>
 
   <br/>
   <p>
