@@ -1,5 +1,6 @@
 import { BrevoClient } from "@getbrevo/brevo";
-import puppeteer from "puppeteer";
+import puppeteer from "puppeteer-core";
+import chromium from "@sparticuz/chromium";
 
 // ── Initialize Brevo client ──────────────────────────────────────────────────
 const client = new BrevoClient({ apiKey: process.env.BREVO_API_KEY });
@@ -29,9 +30,6 @@ function numberToWords(num) {
 const fmt = (n) => Number(n || 0).toLocaleString("en-IN");
 
 // ── Generate PDF buffer from image ──────────────────────────────────────────
-// slipImageData is the base64 JPEG data URL produced by html2canvas in +Page.jsx.
-// We embed it directly into an A4 page via Puppeteer — no HTML re-render,
-// so the email PDF is pixel-identical to the downloaded one.
 async function generatePDFBuffer(slipImageData) {
   const fullHtml = `<!DOCTYPE html>
 <html>
@@ -59,9 +57,16 @@ async function generatePDFBuffer(slipImageData) {
 <body><img src="${slipImageData}" /></body>
 </html>`;
 
+  // ── Use sparticuz/chromium on Render (cloud), fallback to local Chrome for dev
+  const isLocal = process.env.NODE_ENV !== "production";
+
   const browser = await puppeteer.launch({
-    headless: "new",
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+    args: chromium.args,
+    executablePath: isLocal
+      ? undefined  // uses system Chrome locally if available
+      : await chromium.executablePath(),
+    headless: chromium.headless,
+    defaultViewport: chromium.defaultViewport,
   });
 
   try {
@@ -132,7 +137,6 @@ function buildEmailBody(data) {
 }
 
 // ── Send salary slip email with PDF attachment ───────────────────────────────
-// data must include slipImageData — the base64 JPEG from html2canvas in +Page.jsx
 export async function sendSalarySlipEmail(data) {
   const { email, employeeName, payMonth, slipImageData } = data;
 
