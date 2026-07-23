@@ -126,10 +126,10 @@ async function startServer() {
     });
     console.log("✅ MongoDB connected:", mongoose.connection.db.databaseName);
 
-    app.listen(PORT, () => {
-      console.log(`\n🚀 Salary API running on http://localhost:${PORT}`);
-      console.log(`📋 API docs:    http://localhost:${PORT}/`);
-      console.log(`❤️  Health:      http://localhost:${PORT}/health\n`);
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`\n🚀 Salary API running on port ${PORT} (bound to 0.0.0.0)`);
+      console.log(`📋 API docs:    /`);
+      console.log(`❤️  Health:      /health\n`);
     });
   } catch (err) {
     console.error("❌ MongoDB connection failed:", err.message);
