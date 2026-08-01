@@ -1,7 +1,6 @@
 import "dotenv/config";
 import express from "express";
 import mongoose from "mongoose";
-import cors from "cors";
 import morgan from "morgan";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -15,12 +14,13 @@ const app  = express();app.set('trust proxy', 1);
 const PORT = process.env.PORT || 5000;
 
 // ─── Security & Logging ──────────────────────────────────────────────────────
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(morgan("dev"));
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
-// Allowed origins: known production frontend + any extras via env.
-// Set FRONTEND_URL (and optionally CORS_ORIGINS as a comma-separated list) on Railway.
+// Manual CORS handling — no dependency on the `cors` package or Express routing,
+// so it can't be broken by Express 5 / path-to-regexp quirks. Handles preflight too.
+// Set FRONTEND_URL and/or CORS_ORIGINS (comma-separated) on Railway to add more.
 const allowedOrigins = [
   "https://salarypayslip-frontend.onrender.com", // production frontend (Render)
   process.env.FRONTEND_URL,                       // optional override / extra
@@ -32,25 +32,25 @@ const allowedOrigins = [
     : []),
 ]
   .filter(Boolean)
-  .map((o) => o.replace(/\/$/, "")); // strip any trailing slash
+  .map((o) => o.replace(/\/$/, "").toLowerCase()); // normalize: strip trailing slash + lowercase
 
-const corsOptions = {
-  origin(origin, callback) {
-    // Allow non-browser requests (curl, health checks, server-to-server) with no Origin
-    if (!origin) return callback(null, true);
-    const cleaned = origin.replace(/\/$/, "");
-    if (allowedOrigins.includes(cleaned)) return callback(null, true);
+console.log("[CORS] Allowed origins:", allowedOrigins);
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin.replace(/\/$/, "").toLowerCase())) {
+    res.setHeader("Access-Control-Allow-Origin", origin); // reflect the exact origin
+    res.setHeader("Vary", "Origin");
+    res.setHeader("Access-Control-Allow-Credentials", "true");
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  } else if (origin) {
     console.warn("[CORS] Blocked origin:", origin);
-    return callback(new Error(`Origin ${origin} not allowed by CORS`));
-  },
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
-};
-
-// cors() middleware below already answers OPTIONS preflight automatically.
-// (Do NOT add app.options("*", ...) — Express 5 / path-to-regexp v8 rejects the bare "*" route.)
-app.use(cors(corsOptions));
+  }
+  // Answer preflight immediately, before rate limiters / routes.
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
 
 // ─── Body Parser ─────────────────────────────────────────────────────────────
 app.use(express.json({ limit: "10mb" }));
@@ -93,6 +93,8 @@ app.use("/api/salary",    authMiddleware, salaryRoutes);
 app.get("/health", (req, res) => {
   res.json({
     status: "ok",
+    corsVersion: "manual-v3",   // ← if you see this at /health, the new code is live
+    allowedOrigins,             // ← should include your Render frontend URL
     environment: process.env.NODE_ENV,
     mongodb: mongoose.connection.readyState === 1 ? "connected" : "disconnected",
     timestamp: new Date().toISOString(),
