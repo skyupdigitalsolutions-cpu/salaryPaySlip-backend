@@ -19,17 +19,37 @@ app.use(helmet());
 app.use(morgan("dev"));
 
 // ─── CORS ────────────────────────────────────────────────────────────────────
-app.use(
-  cors({
-    origin: [
-      process.env.FRONTEND_URL || "http://localhost:3000",
-      "http://localhost:5173",
-      "http://localhost:4173",
-    ],
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true,
-  })
-);
+// Allowed origins: known production frontend + any extras via env.
+// Set FRONTEND_URL (and optionally CORS_ORIGINS as a comma-separated list) on Railway.
+const allowedOrigins = [
+  "https://salarypayslip-frontend.onrender.com", // production frontend (Render)
+  process.env.FRONTEND_URL,                       // optional override / extra
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "http://localhost:4173",
+  ...(process.env.CORS_ORIGINS
+    ? process.env.CORS_ORIGINS.split(",").map((o) => o.trim())
+    : []),
+]
+  .filter(Boolean)
+  .map((o) => o.replace(/\/$/, "")); // strip any trailing slash
+
+const corsOptions = {
+  origin(origin, callback) {
+    // Allow non-browser requests (curl, health checks, server-to-server) with no Origin
+    if (!origin) return callback(null, true);
+    const cleaned = origin.replace(/\/$/, "");
+    if (allowedOrigins.includes(cleaned)) return callback(null, true);
+    console.warn("[CORS] Blocked origin:", origin);
+    return callback(new Error(`Origin ${origin} not allowed by CORS`));
+  },
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions)); // explicitly handle all preflight requests
 
 // ─── Body Parser ─────────────────────────────────────────────────────────────
 app.use(express.json({ limit: "10mb" }));
