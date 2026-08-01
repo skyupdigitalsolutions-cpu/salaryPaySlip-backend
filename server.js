@@ -48,8 +48,9 @@ const corsOptions = {
   credentials: true,
 };
 
+// cors() middleware below already answers OPTIONS preflight automatically.
+// (Do NOT add app.options("*", ...) — Express 5 / path-to-regexp v8 rejects the bare "*" route.)
 app.use(cors(corsOptions));
-app.options("*", cors(corsOptions)); // explicitly handle all preflight requests
 
 // ─── Body Parser ─────────────────────────────────────────────────────────────
 app.use(express.json({ limit: "10mb" }));
